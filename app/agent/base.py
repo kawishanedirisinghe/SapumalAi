@@ -136,6 +136,14 @@ class BaseAgent(BaseModel, ABC):
             while (
                 self.current_step < self.max_steps and self.state != AgentState.FINISHED
             ):
+                # Check for stop signal if task tracking is available
+                if hasattr(self, 'task_id') and hasattr(self, 'running_tasks') and self.task_id and self.running_tasks:
+                    if self.running_tasks.get(self.task_id, {}).get('stop_flag', False):
+                        logger.info(f"Task {self.task_id} stopped by user request at step {self.current_step}")
+                        results.append(f"Step {self.current_step}: Task stopped by user")
+                        self.state = AgentState.FINISHED
+                        break
+                
                 self.current_step += 1
                 logger.info(f"Executing step {self.current_step}/{self.max_steps}")
                 step_result = await self.step()

@@ -54,6 +54,10 @@ class Manus(ToolCallAgent):
     api_key_manager: Optional[object] = Field(default=None, exclude=True)
     current_key_config: Optional[Dict] = Field(default=None, exclude=True)
     retry_count: int = Field(default=0, exclude=True)
+    
+    # Stop signal tracking
+    task_id: Optional[str] = Field(default=None, exclude=True)
+    running_tasks: Optional[Dict] = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def initialize_helper(self) -> "Manus":
@@ -62,7 +66,7 @@ class Manus(ToolCallAgent):
         return self
 
     @classmethod
-    async def create(cls, api_key_manager=None, **kwargs) -> "Manus":
+    async def create(cls, api_key_manager=None, task_id=None, running_tasks=None, **kwargs) -> "Manus":
         """Factory method to create and properly initialize a Manus instance."""
         # Use the advanced API key manager if provided
         if api_key_manager:
@@ -73,6 +77,10 @@ class Manus(ToolCallAgent):
                 kwargs['api_key'] = api_key
                 kwargs['api_key_manager'] = api_key_manager
                 kwargs['current_key_config'] = key_config
+        
+        # Add task tracking for stop functionality
+        kwargs['task_id'] = task_id
+        kwargs['running_tasks'] = running_tasks
         
         instance = cls(**kwargs)
         await instance.initialize_mcp_servers()
