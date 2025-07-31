@@ -310,8 +310,7 @@ def get_files_pathlib(root_dir):
 
 @app.route('/')
 def index():
-    files = os.listdir(app.config['WORKSPACE'])
-    return render_template('index.html', files=files)
+    return render_template('index.html')
 
 @app.route('/file/<filename>')
 def file(filename):
@@ -336,6 +335,62 @@ def file(filename):
 def api_keys_status():
     """API endpoint to get status of all API keys"""
     return jsonify(api_key_manager.get_keys_status())
+
+@app.route('/api/agents')
+def get_agents():
+    """API endpoint to get available agents"""
+    agents = [
+        {
+            "id": "manus",
+            "name": "Manus",
+            "description": "Advanced code analysis and generation agent",
+            "status": "ready",
+            "capabilities": ["Code Analysis", "Bug Fixing", "Documentation"]
+        },
+        {
+            "id": "flow",
+            "name": "Flow Agent", 
+            "description": "Workflow automation and task management",
+            "status": "ready",
+            "capabilities": ["Task Automation", "Process Design", "Integration"]
+        },
+        {
+            "id": "data-analysis",
+            "name": "Data Analysis",
+            "description": "Data processing and insights generation", 
+            "status": "stopped",
+            "capabilities": ["Data Processing", "Visualization", "Analytics"]
+        }
+    ]
+    return jsonify(agents)
+
+@app.route('/api/tasks')
+def get_tasks():
+    """API endpoint to get recent tasks"""
+    tasks = [
+        {
+            "id": 1,
+            "title": "Code Review",
+            "description": "Review Python application code",
+            "status": "completed",
+            "agent": "Manus"
+        },
+        {
+            "id": 2, 
+            "title": "Data Processing",
+            "description": "Process CSV data file",
+            "status": "running",
+            "agent": "Data Analysis"
+        },
+        {
+            "id": 3,
+            "title": "Bug Analysis", 
+            "description": "Fix bot stop display issue",
+            "status": "pending",
+            "agent": "Manus"
+        }
+    ]
+    return jsonify(tasks)
 
 # File upload utilities
 def allowed_file(filename):
