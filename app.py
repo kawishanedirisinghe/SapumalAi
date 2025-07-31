@@ -471,6 +471,11 @@ async def main(prompt, task_id=None):
     retry_count = 0
     
     while retry_count < max_retries:
+        # Check for stop signal before starting
+        if task_id and running_tasks.get(task_id, {}).get('stop_flag', False):
+            logger.info(f"Task {task_id} stopped before starting agent")
+            return
+            
         # Get available API key
         result = api_key_manager.get_available_api_key(use_random=True)
         if not result:
@@ -484,6 +489,11 @@ async def main(prompt, task_id=None):
             while time.time() - start_time < max_wait_time:
                 logger.info(f"Waiting {wait_time}s for API key availability...")
                 await asyncio.sleep(wait_time)
+                
+                # Check for stop signal during wait
+                if task_id and running_tasks.get(task_id, {}).get('stop_flag', False):
+                    logger.info(f"Task {task_id} stopped during API key wait")
+                    return
                 
                 result = api_key_manager.get_available_api_key(use_random=True)
                 if result:
@@ -500,10 +510,12 @@ async def main(prompt, task_id=None):
         try:
             logger.info(f"Using API key: {key_name}")
             
-            # Create Manus agent with advanced API key manager
+            # Create Manus agent with advanced API key manager and task_id for stop checking
             agent = await Manus.create(
                 api_key_manager=api_key_manager,
-                api_key=api_key
+                api_key=api_key,
+                task_id=task_id,
+                running_tasks=running_tasks
             )
             
             # Execute the task
@@ -658,6 +670,11 @@ async def run_flow_task(prompt, task_id=None):
     retry_count = 0
     
     while retry_count < max_retries:
+        # Check for stop signal before starting
+        if task_id and running_tasks.get(task_id, {}).get('stop_flag', False):
+            logger.info(f"Flow task {task_id} stopped before starting agent")
+            return
+            
         # Get available API key
         result = api_key_manager.get_available_api_key(use_random=True)
         if not result:
@@ -671,6 +688,11 @@ async def run_flow_task(prompt, task_id=None):
             while time.time() - start_time < max_wait_time:
                 logger.info(f"Waiting {wait_time}s for API key availability...")
                 await asyncio.sleep(wait_time)
+                
+                # Check for stop signal during wait
+                if task_id and running_tasks.get(task_id, {}).get('stop_flag', False):
+                    logger.info(f"Flow task {task_id} stopped during API key wait")
+                    return
                 
                 result = api_key_manager.get_available_api_key(use_random=True)
                 if result:
@@ -687,16 +709,23 @@ async def run_flow_task(prompt, task_id=None):
         try:
             logger.info(f"Using API key: {key_name}")
             
-            # Create agents with advanced API key manager
+            # Create agents with advanced API key manager and task_id for stop checking
             agents = {
                 "manus": await Manus.create(
                     api_key_manager=api_key_manager,
-                    api_key=api_key
+                    api_key=api_key,
+                    task_id=task_id,
+                    running_tasks=running_tasks
                 ),
             }
             
             if app_config.run_flow_config.use_data_analysis_agent:
-                agents["data_analysis"] = DataAnalysis()
+                # Create data analysis agent with stop tracking
+                data_agent = DataAnalysis()
+                if task_id and running_tasks:
+                    data_agent.task_id = task_id
+                    data_agent.running_tasks = running_tasks
+                agents["data_analysis"] = data_agent
             
             # Create and execute flow
             flow = FlowFactory.create_flow(

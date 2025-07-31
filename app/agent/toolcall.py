@@ -38,6 +38,13 @@ class ToolCallAgent(ReActAgent):
 
     async def think(self) -> bool:
         """Process current state and decide next actions using tools"""
+        # Check for stop signal before thinking
+        if hasattr(self, 'task_id') and hasattr(self, 'running_tasks') and self.task_id and self.running_tasks:
+            if self.running_tasks.get(self.task_id, {}).get('stop_flag', False):
+                logger.info(f"Task {self.task_id} stopped during think phase")
+                self.state = AgentState.FINISHED
+                return False
+        
         if self.next_step_prompt:
             user_msg = Message.user_message(self.next_step_prompt)
             self.messages += [user_msg]
@@ -130,6 +137,13 @@ class ToolCallAgent(ReActAgent):
 
     async def act(self) -> str:
         """Execute tool calls and handle their results"""
+        # Check for stop signal before acting
+        if hasattr(self, 'task_id') and hasattr(self, 'running_tasks') and self.task_id and self.running_tasks:
+            if self.running_tasks.get(self.task_id, {}).get('stop_flag', False):
+                logger.info(f"Task {self.task_id} stopped during act phase")
+                self.state = AgentState.FINISHED
+                return "Task stopped by user"
+        
         if not self.tool_calls:
             if self.tool_choices == ToolChoice.REQUIRED:
                 raise ValueError(TOOL_CALL_REQUIRED)
@@ -139,6 +153,13 @@ class ToolCallAgent(ReActAgent):
 
         results = []
         for command in self.tool_calls:
+            # Check for stop signal before each tool execution
+            if hasattr(self, 'task_id') and hasattr(self, 'running_tasks') and self.task_id and self.running_tasks:
+                if self.running_tasks.get(self.task_id, {}).get('stop_flag', False):
+                    logger.info(f"Task {self.task_id} stopped during tool execution")
+                    self.state = AgentState.FINISHED
+                    return "Task stopped by user"
+            
             # Reset base64_image for each tool call
             self._current_base64_image = None
 
